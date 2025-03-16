@@ -129,7 +129,7 @@ The singleton instance of the Web2Wave client.
 #### `fun fetchSubscriptionStatus(appUserID: String) : Map<String, Any>?`
 Fetches the subscription status for a given user ID.
 
-#### `fun fetchSubscriptionStatus(appUserID: String) : List<Map<String, Any>>?`
+#### `fun fetchSubscriptions(appUserID: String) : List<Map<String, Any>>?`
 Fetches all subscriptionsfor a given user ID.
 
 #### `fun hasActiveSubscription(appUserID: String) : Boolean`
