@@ -1,5 +1,3 @@
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -44,28 +42,27 @@ object Web2Wave {
         return URL(sb.toString())
     }
 
-    suspend fun fetchSubscriptionStatus(userID: String): Map<String, Any>? {
+    fun fetchSubscriptionStatus(userID: String): Map<String, Any>? {
         checkNotNull(apiKey) { "You have to initialize apiKey before use" }
 
         val url = buildUrl(API_SUBSCRIPTIONS, mapOf(KEY_USER to userID))
 
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = makeRequest(url, "GET")
-                response?.let { resp ->
-                    val json = Json.decodeFromString<Map<String, JsonElement>>(resp)
-                    json.map {
-                        it.key to it.value.toAny()
-                    }.toMap()
-                }
-            } catch (e: Exception) {
-                println("Failed to fetch subscription status: ${e.localizedMessage}")
-                null
+        return try {
+            val response = makeRequest(url, "GET")
+            response?.let { resp ->
+                val json = Json.decodeFromString<Map<String, JsonElement>>(resp)
+                json.map {
+                    it.key to it.value.toAny()
+                }.toMap()
             }
+        } catch (e: Exception) {
+            println("Failed to fetch subscription status: ${e.localizedMessage}")
+            null
         }
+
     }
 
-    suspend fun hasActiveSubscription(userID: String): Boolean {
+    fun hasActiveSubscription(userID: String): Boolean {
         val status = fetchSubscriptionStatus(userID) ?: return false
         val subscriptions = status[KEY_SUBSCRIPTION] ?: return false
         return try {
@@ -81,7 +78,7 @@ object Web2Wave {
         }
     }
 
-    suspend fun fetchSubscriptions(userID: String): List<Map<String, Any>>? {
+    fun fetchSubscriptions(userID: String): List<Map<String, Any>>? {
         checkNotNull(apiKey) { "You have to initialize apiKey before use" }
         val result = fetchSubscriptionStatus(userID)
         return result?.get(KEY_SUBSCRIPTION) as? List<Map<String, Any>>
@@ -91,21 +88,19 @@ object Web2Wave {
         checkNotNull(apiKey) { "You have to initialize apiKey before use" }
         val url = buildUrl(API_USER_PROPERTIES, mapOf(KEY_USER to userID))
 
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = makeRequest(url, "GET")
-                response?.let { resp ->
-                    val json = Json.decodeFromString<Map<String, JsonElement>>(resp)
-                    json[KEY_PROPERTIES]?.jsonArray?.associate {
-                        val key = it.jsonObject[KEY_PROPERTY]?.jsonPrimitive?.content ?: ""
-                        val value = it.jsonObject[KEY_VALUE]?.jsonPrimitive?.content ?: ""
-                        key to value
-                    }
+        return try {
+            val response = makeRequest(url, "GET")
+            response?.let { resp ->
+                val json = Json.decodeFromString<Map<String, JsonElement>>(resp)
+                json[KEY_PROPERTIES]?.jsonArray?.associate {
+                    val key = it.jsonObject[KEY_PROPERTY]?.jsonPrimitive?.content ?: ""
+                    val value = it.jsonObject[KEY_VALUE]?.jsonPrimitive?.content ?: ""
+                    key to value
                 }
-            } catch (e: Exception) {
-                println("Failed to fetch properties: ${e.localizedMessage}")
-                null
             }
+        } catch (e: Exception) {
+            println("Failed to fetch properties: ${e.localizedMessage}")
+            null
         }
     }
 
@@ -114,15 +109,15 @@ object Web2Wave {
         return updateUserProperty(appUserID, PROFILE_ID_REVENUECAT, revenueCatProfileID)
     }
 
-    suspend fun setAdaptyProfileID(appUserID: String, adaptyProfileID: String): Result<Unit> {
+    fun setAdaptyProfileID(appUserID: String, adaptyProfileID: String): Result<Unit> {
         return updateUserProperty(appUserID, PROFILE_ID_ADAPTY, adaptyProfileID)
     }
 
-    suspend fun setQonversionProfileID(appUserID: String, qonversionProfileID: String): Result<Unit> {
+    fun setQonversionProfileID(appUserID: String, qonversionProfileID: String): Result<Unit> {
         return updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID)
     }
 
-    suspend fun updateUserProperty(userID: String, property: String, value: String): Result<Unit> {
+    fun updateUserProperty(userID: String, property: String, value: String): Result<Unit> {
         checkNotNull(apiKey) { "You have to initialize apiKey before use" }
 
         val url = buildUrl(API_USER_PROPERTIES, mapOf(KEY_USER to userID))
@@ -130,17 +125,15 @@ object Web2Wave {
             JsonObject(mapOf(KEY_PROPERTY to JsonPrimitive(property), KEY_VALUE to JsonPrimitive(value)))
         )
 
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = makeRequest(url, "POST", body)
-                response?.let {
-                    val jsonResponse = Json.parseToJsonElement(it).jsonObject
-                    if (jsonResponse[KEY_RESULT]?.jsonPrimitive?.content == "1") Result.success(Unit)
-                    else Result.failure(Exception("Unexpected response"))
-                } ?: Result.failure(Exception("Empty response"))
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+        return try {
+            val response = makeRequest(url, "POST", body)
+            response?.let {
+                val jsonResponse = Json.parseToJsonElement(it).jsonObject
+                if (jsonResponse[KEY_RESULT]?.jsonPrimitive?.content == "1") Result.success(Unit)
+                else Result.failure(Exception("Unexpected response"))
+            } ?: Result.failure(Exception("Empty response"))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
