@@ -9,7 +9,6 @@ Web2Wave is a lightweight Kotlin package that provides a simple interface for ma
 - Manage user properties
 - Set third-parties profiles
 - Thread-safe singleton design
-- Kotlin coroutines API support
 - Built-in error handling
 
 ## Installation
@@ -33,7 +32,7 @@ In you app-level `build.gradle.kts` file:
 
 ```java
 dependencies {
-        implementation("com.github.web2wave:web2wave_kotlin:1.0.0")
+        implementation("com.github.web2wave:web2wave_kotlin:1.0.1")
 }
 ```
 
@@ -47,24 +46,23 @@ Web2Wave.initWith("your-api-key")
 
 ## Usage
 
+The library works with the network, make sure that the calls are not made on the main thread.
+
 ### Checking Subscription Status
 
 ```java
-scope.launch {
- 
+
     // Fetch subscriptions
     val status = Web2Wave.fetchSubscriptions(userID = "user123")
 
     // Check if user has an active subscription
     val isActive = Web2Wave.hasActiveSubscription(userID = "user123")
 
-}
 ```
 
 ### Managing User Properties
 
 ```java
-scope.launch {
 // Fetch user properties
     val properties = Web2Wave.fetchUserProperties(userID = "user123")
         print("User properties: \(properties)")
@@ -86,12 +84,10 @@ scope.launch {
         }
     }
 
-}
 ```
 
 ### Managing third-party profiles
 ```java
-scope.launch {
 
     // Save Adapty profileID
     val result = Web2Wave.setAdaptyProfileID(
@@ -119,7 +115,6 @@ scope.launch {
         appUserID = "user123",
         qonversionProfileID = "{qonversionProfileID}"
     )
-}
 
 ```
 
@@ -131,28 +126,28 @@ The singleton instance of the Web2Wave client.
 
 ### Methods
 
-#### `suspend fun fetchSubscriptionStatus(appUserID: String) : Map<String, Any>?`
+#### `fun fetchSubscriptionStatus(appUserID: String) : Map<String, Any>?`
 Fetches the subscription status for a given user ID.
 
-#### `suspend fun fetchSubscriptionStatus(appUserID: String) : List<Map<String, Any>>?`
+#### `fun fetchSubscriptionStatus(appUserID: String) : List<Map<String, Any>>?`
 Fetches all subscriptionsfor a given user ID.
 
-#### `suspend fun hasActiveSubscription(appUserID: String) : Boolean`
+#### `fun hasActiveSubscription(appUserID: String) : Boolean`
 Checks if the user has an active subscription (including trial status).
 
-#### `suspend fun fetchUserProperties(appUserID: String) : Map<String, Any>?`
+#### `fun fetchUserProperties(appUserID: String) : Map<String, Any>?`
 Retrieves all properties associated with a user.
 
-#### `suspend fun updateUserProperty(appUserID: String, property: String, value: String) : Result<Unit>`
+#### `fun updateUserProperty(appUserID: String, property: String, value: String) : Result<Unit>`
 Updates a specific property for a user.
 
-#### `suspend fun setRevenuecatProfileID(appUserID: String, revenueCatProfileID: String) : Result<Unit>`
+#### `fun setRevenuecatProfileID(appUserID: String, revenueCatProfileID: String) : Result<Unit>`
 Set Revenuecat profileID
 
-#### `suspend fun setAdaptyProfileID(appUserID: String, adaptyProfileID: String) : Result<Unit>`
+#### `fun setAdaptyProfileID(appUserID: String, adaptyProfileID: String) : Result<Unit>`
 Set Adapty profileID
 
-#### `suspend fun setQonversionProfileID(appUserID: String, qonversionProfileID: String) : Result<Unit>`
+#### `fun setQonversionProfileID(appUserID: String, qonversionProfileID: String) : Result<Unit>`
 Set Qonversion ProfileID
 
 ## License
