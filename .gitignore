@@ -3,6 +3,7 @@ build
 .gradle
 .kotlin
 .DS_Store
+.idea
 
 
 
