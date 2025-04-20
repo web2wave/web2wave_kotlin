@@ -1,9 +1,13 @@
-import kotlinx.serialization.json.*
+package com.web2wave.lib
+
+import android.webkit.URLUtil
+import androidx.fragment.app.FragmentManager
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-
 private const val BASE_URL = "https://api.web2wave.com"
+private const val WEB_2_WAVE = "web2wave_tag"
 
 object Web2Wave {
 
@@ -36,14 +40,11 @@ object Web2Wave {
     private const val METHOD_TYPE_GET = "GET"
     private const val METHOD_TYPE_PUT = "PUT"
 
-
     private var apiKey: String? = null
-
 
     fun initWith(apiKey: String) {
         this.apiKey = apiKey
     }
-
 
     private fun buildUrl(path: String, queryParams: Map<String, String>? = null): URL {
         val sb = StringBuilder("$BASE_URL/$path")
@@ -62,10 +63,8 @@ object Web2Wave {
         return try {
             val response = makeRequest(url, METHOD_TYPE_GET)
             response?.let { resp ->
-                val json = Json.decodeFromString<Map<String, JsonElement>>(resp)
-                json.map {
-                    it.key to it.value.toAny()
-                }.toMap()
+                val json = JSONObject(resp)
+                json.toMap()
             }
         } catch (e: Exception) {
             println("Failed to fetch subscription status: ${e.localizedMessage}")
@@ -77,8 +76,9 @@ object Web2Wave {
         val status = fetchSubscriptionStatus(userID) ?: return false
         val subscriptions = status[KEY_SUBSCRIPTION] ?: return false
         return try {
-            subscriptions as List<Map<String, Any>>
-            subscriptions.any() { sub ->
+            @Suppress("UNCHECKED_CAST")
+            val list = subscriptions as List<Map<String, Any>>
+            list.any { sub ->
                 val value = sub[KEY_STATUS]
                 value == VALUE_ACTIVE || value == VALUE_TRIAL
             }
@@ -89,69 +89,45 @@ object Web2Wave {
     }
 
     fun fetchSubscriptions(userID: String): List<Map<String, Any>>? {
-        checkNotNull(apiKey) { "You have to initialize apiKey before use" }
         val result = fetchSubscriptionStatus(userID)
         return result?.get(KEY_SUBSCRIPTION) as? List<Map<String, Any>>
     }
 
-    fun cancelSubscription(
-        paySystemId: String,
-        comment: String? = null
-    ): Result<Boolean> {
+    fun cancelSubscription(paySystemId: String, comment: String? = null): Result<Boolean> {
         checkNotNull(apiKey) { "You must initialize apiKey before use" }
-        try {
+        return try {
             val url = buildUrl(API_SUBSCRIPTION_CANCEL)
-            val bodyMap = mutableMapOf(KEY_PAY_SYSTEM to paySystemId)
+            val body = JSONObject().apply {
+                put(KEY_PAY_SYSTEM, paySystemId)
+                if (!comment.isNullOrBlank()) put(KEY_COMMENT, comment)
+            }.toString()
 
-            if (!comment.isNullOrBlank()) {
-                bodyMap[KEY_COMMENT] = comment
-            }
+            val response = makeRequest(url, METHOD_TYPE_PUT, body)
+            val json = response?.let { JSONObject(it) }
 
-            val body = Json.encodeToString(bodyMap)
-            val response = makeRequest(
-                url = url,
-                method = METHOD_TYPE_PUT,
-                body = body
-            )
-
-            val json = response?.let { Json.parseToJsonElement(it).jsonObject }
-
-            return if (json?.get("success")?.jsonPrimitive?.content == "1") {
-                Result.success(true)
-            } else {
-                Result.failure(Exception(json?.get("message")?.jsonPrimitive?.content ?: "Unknown error"))
-            }
-
+            if (json?.optString("success") == "1") Result.success(true)
+            else Result.failure(Exception(json?.optString("message") ?: "Unknown error"))
         } catch (e: Exception) {
-            return Result.failure(e)
+            Result.failure(e)
         }
     }
 
-    fun chargeUser(
-        web2waveUserId: String,
-        priceId: Int
-    ): Result<Boolean> {
+    fun chargeUser(web2waveUserId: String, priceId: Int): Result<Boolean> {
         checkNotNull(apiKey) { "You must initialize apiKey before use" }
-        try {
+        return try {
             val url = buildUrl(API_SUBSCRIPTION_CHARGE)
-            val body = Json.encodeToString(
-                mapOf(
-                    KEY_USER_ID to web2waveUserId,
-                    KEY_PRICE_ID to priceId.toString()
-                )
-            )
+            val body = JSONObject().apply {
+                put(KEY_USER_ID, web2waveUserId)
+                put(KEY_PRICE_ID, priceId.toString())
+            }.toString()
 
-            val response = makeRequest(url = url, method = METHOD_TYPE_PUT, body = body)
-            val json = response?.let { Json.parseToJsonElement(it).jsonObject }
+            val response = makeRequest(url, METHOD_TYPE_POST, body)
+            val json = response?.let { JSONObject(it) }
 
-            return if (json?.get("success")?.jsonPrimitive?.content == "1") {
-                Result.success(true)
-            } else {
-                Result.failure(Exception(json?.get("message")?.jsonPrimitive?.content ?: "Unknown error"))
-            }
-
+            if (json?.optString("success") == "1") Result.success(true)
+            else Result.failure(Exception(json?.optString("message") ?: "Unknown error"))
         } catch (e: Exception) {
-            return Result.failure(e)
+            Result.failure(e)
         }
     }
 
@@ -161,29 +137,21 @@ object Web2Wave {
         comment: String? = null
     ): Result<Boolean> {
         checkNotNull(apiKey) { "You must initialize apiKey before use" }
-        try {
+        return try {
             val url = buildUrl(API_SUBSCRIPTION_REFUND)
+            val body = JSONObject().apply {
+                put(KEY_PAY_SYSTEM, paySystemId)
+                put(KEY_INVOICE_ID, invoiceId)
+                if (!comment.isNullOrBlank()) put(KEY_COMMENT, comment)
+            }.toString()
 
-            val bodyMap = mutableMapOf(
-                KEY_PAY_SYSTEM to paySystemId,
-                KEY_INVOICE_ID to invoiceId
-            )
-            if (!comment.isNullOrBlank()) {
-                bodyMap[KEY_COMMENT] = comment
-            }
+            val response = makeRequest(url, METHOD_TYPE_PUT, body)
+            val json = response?.let { JSONObject(it) }
 
-            val body = Json.encodeToString(bodyMap)
-            val response = makeRequest(url = url, method = METHOD_TYPE_PUT, body = body)
-            val json = response?.let { Json.parseToJsonElement(it).jsonObject }
-
-            return if (json?.get("success")?.jsonPrimitive?.content == "1") {
-                Result.success(true)
-            } else {
-                Result.failure(Exception(json?.get("message")?.jsonPrimitive?.content ?: "Unknown error"))
-            }
-
+            if (json?.optString("success") == "1") Result.success(true)
+            else Result.failure(Exception(json?.optString("message") ?: "Unknown error"))
         } catch (e: Exception) {
-            return Result.failure(e)
+            Result.failure(e)
         }
     }
 
@@ -193,13 +161,17 @@ object Web2Wave {
 
         return try {
             val response = makeRequest(url, METHOD_TYPE_GET)
-            response?.let { resp ->
-                val json = Json.decodeFromString<Map<String, JsonElement>>(resp)
-                json[KEY_PROPERTIES]?.jsonArray?.associate {
-                    val key = it.jsonObject[KEY_PROPERTY]?.jsonPrimitive?.content ?: ""
-                    val value = it.jsonObject[KEY_VALUE]?.jsonPrimitive?.content ?: ""
-                    key to value
+            response?.let {
+                val json = JSONObject(it)
+                val properties = json.optJSONArray(KEY_PROPERTIES) ?: return@let null
+                val result = mutableMapOf<String, String>()
+                for (i in 0 until properties.length()) {
+                    val item = properties.getJSONObject(i)
+                    val key = item.optString(KEY_PROPERTY)
+                    val value = item.optString(KEY_VALUE)
+                    result[key] = value
                 }
+                result
             }
         } catch (e: Exception) {
             println("Failed to fetch properties: ${e.localizedMessage}")
@@ -207,38 +179,36 @@ object Web2Wave {
         }
     }
 
-    suspend fun setRevenuecatProfileID(appUserID: String, revenueCatProfileID: String): Result<Unit> {
-        return updateUserProperty(appUserID, PROFILE_ID_REVENUECAT, revenueCatProfileID)
-    }
+    fun setAdaptyProfileID(appUserID: String, adaptyProfileID: String): Result<Unit> =
+        updateUserProperty(appUserID, PROFILE_ID_ADAPTY, adaptyProfileID)
 
-    fun setAdaptyProfileID(appUserID: String, adaptyProfileID: String): Result<Unit> {
-        return updateUserProperty(appUserID, PROFILE_ID_ADAPTY, adaptyProfileID)
-    }
+    fun setQonversionProfileID(appUserID: String, qonversionProfileID: String): Result<Unit> =
+        updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID)
 
-    fun setQonversionProfileID(appUserID: String, qonversionProfileID: String): Result<Unit> {
-        return updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID)
-    }
+    suspend fun setRevenuecatProfileID(
+        appUserID: String,
+        revenueCatProfileID: String
+    ): Result<Unit> =
+        updateUserProperty(appUserID, PROFILE_ID_REVENUECAT, revenueCatProfileID)
 
     fun updateUserProperty(userID: String, property: String, value: String): Result<Unit> {
         checkNotNull(apiKey) { "You have to initialize apiKey before use" }
 
         val url = buildUrl(API_USER_PROPERTIES, mapOf(KEY_USER to userID))
-        val body = Json.encodeToString(
-            JsonObject(mapOf(KEY_PROPERTY to JsonPrimitive(property), KEY_VALUE to JsonPrimitive(value)))
-        )
+        val body = JSONObject().apply {
+            put(KEY_PROPERTY, property)
+            put(KEY_VALUE, value)
+        }.toString()
 
         return try {
             val response = makeRequest(url, METHOD_TYPE_POST, body)
-            response?.let {
-                val jsonResponse = Json.parseToJsonElement(it).jsonObject
-                if (jsonResponse[KEY_RESULT]?.jsonPrimitive?.content == "1") Result.success(Unit)
-                else Result.failure(Exception("Unexpected response"))
-            } ?: Result.failure(Exception("Empty response"))
+            val json = response?.let { JSONObject(it) }
+            if (json?.optString(KEY_RESULT) == "1") Result.success(Unit)
+            else Result.failure(Exception("Unexpected response"))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-
 
     private fun makeRequest(url: URL, method: String, body: String? = null): String? {
         val connection = url.openConnection() as HttpURLConnection
@@ -248,18 +218,22 @@ object Web2Wave {
             connection.setRequestProperty("Cache-Control", "no-cache")
             connection.setRequestProperty("Pragma", "no-cache")
 
-            if (method == METHOD_TYPE_POST) {
+            if (method == METHOD_TYPE_POST || method == METHOD_TYPE_PUT) {
                 connection.setRequestProperty("Content-Type", "application/json")
                 connection.doOutput = true
-                body?.let { bd ->
-                    connection.outputStream.use { it.write(bd.toByteArray(Charsets.UTF_8)) }
-                }
+                body?.let { connection.outputStream.use { os -> os.write(it.toByteArray()) } }
             }
 
             if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                 connection.inputStream.bufferedReader().use { it.readText() }
             } else {
-                println("Unexpected response code: ${connection.responseCode}")
+                println(
+                    "Unexpected response code: ${connection.responseCode}," +
+                            " message: ${connection.responseMessage}, " +
+                            " details: ${
+                                connection.errorStream.bufferedReader().use { it.readText() }
+                            }"
+                )
                 null
             }
         } catch (e: Exception) {
@@ -270,34 +244,24 @@ object Web2Wave {
         }
     }
 
-    private fun JsonObject.toMapAny(): Map<String, Any> {
-        return this.mapValues { (_, value) ->
-            value.toAny()
+    fun showWebView(
+        fragmentManager: FragmentManager,
+        url: String, listener: Web2WaveWebListener,
+        topOffset: Int = 0,
+        bottomOffset: Int = 0
+    ) {
+        checkNotNull(apiKey) { "You must initialize apiKey before use" }
+        check(URLUtil.isValidUrl(url)) { "You must provide valid url" }
+        Web2WaveDialog.create(
+            url, listener, topOffset, bottomOffset
+        ).show(fragmentManager, WEB_2_WAVE)
+    }
+
+    fun closeWebView(fragmentManager: FragmentManager) {
+        fragmentManager.findFragmentByTag(WEB_2_WAVE)?.let {
+            (it as Web2WaveDialog).dismissAllowingStateLoss()
         }
     }
-
-    private fun JsonElement.toAny(): Any {
-        return when (this) {
-            is JsonPrimitive -> this.toPrimitiveValue()
-            is JsonObject -> this.toMapAny()
-            is JsonArray -> this.toListAny()
-            else -> this
-        }
-    }
-
-    private fun JsonPrimitive.toPrimitiveValue(): Any {
-        return when {
-            this.isString -> this.content
-            this.booleanOrNull != null -> this.boolean
-            this.intOrNull != null -> this.int
-            this.longOrNull != null -> this.long
-            this.doubleOrNull != null -> this.double
-            else -> this.content
-        }
-    }
-
-    private fun JsonArray.toListAny(): List<Any> {
-        return this.map { it.toAny() }
-    }
-
 }
+
+
