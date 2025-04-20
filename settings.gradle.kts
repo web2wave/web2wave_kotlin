@@ -20,5 +20,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Web2Wave"
-include(":app")
 include(":lib")
