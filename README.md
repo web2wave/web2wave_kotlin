@@ -90,7 +90,7 @@ when {
 ### External Subscription Cancel/Refund/Charge
 
 ```kotlin
-  // Cancel subscription in external Stripe/Paddle/PayPal
+// Cancel subscription in external Stripe/Paddle/PayPal
 val resultCancelSubscription = Web2Wave.cancelSubscription(
     paySystemId = "sub_1PzNJzCsRq5tBi2bbfNsAf86 or I-H7HC902MYM49",
     comment = "may be null"
@@ -123,7 +123,7 @@ when {
         print("Failed to refund subscription with error: ${resultRefundSubscription.exceptionOrNull()}")
     }
 }
-
+//Charge existing user with saved payment method
 val resultChargeUser = Web2Wave.chargeUser(
     web2waveUserId = "User123",
     priceId = 22057
@@ -247,6 +247,30 @@ Set Adapty profileID
 #### `fun setQonversionProfileID(appUserID: String, qonversionProfileID: String) : Result<Unit>`
 
 Set Qonversion ProfileID
+
+#### `fun chargeUser(web2waveUserId: String, priceId: Int): Result<Boolean>`
+
+Charge existing user with saved payment method
+
+#### `fun cancelSubscription(paySystemId: String, comment: String? = null): Result<Boolean>`
+
+Cancel external subscription
+
+#### `fun refundSubscription(paySystemId: String, invoiceId: String, comment: String? = null): Result<Boolean> `
+
+Refund external subscription
+
+#### `fun showWebView(fragmentManager: FragmentManager, url: String, listener: Web2WaveWebListener, topOffset: Int = 0, bottomOffset: Int = 0)`
+
+Open web quiz or landing page
+
+#### `fun closeWebView(fragmentManager: FragmentManager)`
+
+Close web quiz or landing page
+
+## Requirements
+
+- Android SDK >= 24
 
 ## License
 

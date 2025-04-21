@@ -131,7 +131,7 @@ object Web2Wave {
         }
     }
 
-    suspend fun refundSubscription(
+    fun refundSubscription(
         paySystemId: String,
         invoiceId: String,
         comment: String? = null
@@ -155,7 +155,7 @@ object Web2Wave {
         }
     }
 
-    suspend fun fetchUserProperties(userID: String): Map<String, Any>? {
+    fun fetchUserProperties(userID: String): Map<String, Any>? {
         checkNotNull(apiKey) { "You have to initialize apiKey before use" }
         val url = buildUrl(API_USER_PROPERTIES, mapOf(KEY_USER to userID))
 
@@ -185,7 +185,7 @@ object Web2Wave {
     fun setQonversionProfileID(appUserID: String, qonversionProfileID: String): Result<Unit> =
         updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID)
 
-    suspend fun setRevenuecatProfileID(
+    fun setRevenuecatProfileID(
         appUserID: String,
         revenueCatProfileID: String
     ): Result<Unit> =
