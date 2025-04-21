@@ -278,5 +278,5 @@ MIT
 
 ## Author
 
-Aleksandr Filpenko
+Aleksandr Filipenko
 
