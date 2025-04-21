@@ -196,13 +196,7 @@ class EventListener extends Web2WaveWebListener {
 }
 
 //Open web page with your url
-Web2Wave.showWebView(
-    fragmentManager: FragmentManager,
-    url: String,
-    listener: Web2WaveWebListener,
-    topOffset: Int,
-    bottomOffset: Int
-)
+Web2Wave.showWebView(fragmentManager, url , listener, topOffset, bottomOffset)
 
 //Close web page
 Web2Wave.closeWebView()
