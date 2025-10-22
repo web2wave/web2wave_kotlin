@@ -248,12 +248,13 @@ object Web2Wave {
         fragmentManager: FragmentManager,
         url: String, listener: Web2WaveWebListener,
         topOffset: Int = 0,
-        bottomOffset: Int = 0
+        bottomOffset: Int = 0,
+        backgroundColor: Int = 0
     ) {
         checkNotNull(apiKey) { "You must initialize apiKey before use" }
         check(URLUtil.isValidUrl(url)) { "You must provide valid url" }
         Web2WaveDialog.create(
-            url, listener, topOffset, bottomOffset
+            url, listener, topOffset, bottomOffset, backgroundColor
         ).show(fragmentManager, WEB_2_WAVE)
     }
 
