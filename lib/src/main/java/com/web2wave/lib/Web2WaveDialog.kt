@@ -20,6 +20,7 @@ const val TOP_OFFSET_KEY = "top_offset"
 const val BOTTOM_OFFSET_KEY = "bottom_offset"
 private const val EVENT_QUIZ_FINISHED = "Quiz finished"
 private const val EVENT_CLOSE_WEB_VIEW = "Close webview"
+private const val BACKGROUND_COLOR_KEY = "background_color"
 
 
 internal class Web2WaveDialog : DialogFragment() {
@@ -46,19 +47,21 @@ internal class Web2WaveDialog : DialogFragment() {
         val url = requireArguments().getString(URL_KEY)
         val topOffset = requireArguments().getInt(TOP_OFFSET_KEY, 0)
         val bottomOffset = requireArguments().getInt(BOTTOM_OFFSET_KEY, 0)
+        val backgroundColor = requireArguments().getInt(BACKGROUND_COLOR_KEY, 0)
+
         val webView = view as WebView
-        setupWebView(webView, url!!, topOffset, bottomOffset)
+        setupWebView(webView, url!!, topOffset, bottomOffset, backgroundColor)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun setupWebView(webView: WebView, url: String, topOffset: Int, bottomOffset: Int) {
+    private fun setupWebView(webView: WebView, url: String, topOffset: Int, bottomOffset: Int, backgroundColor: Int) {
         webView.webViewClient = WebViewClient()
         webView.webChromeClient = WebChromeClient()
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         WebView.setWebContentsDebuggingEnabled(true)
-
+        webView.setBackgroundColor(backgroundColor)
 
         webView.addJavascriptInterface(object {
             @JavascriptInterface
@@ -120,13 +123,15 @@ internal class Web2WaveDialog : DialogFragment() {
             url: String,
             listener: Web2WaveWebListener?,
             topOffset: Int,
-            bottomOffset: Int
+            bottomOffset: Int,
+            backgroundColor: Int
         ): Web2WaveDialog {
             return Web2WaveDialog().apply {
                 this.arguments = bundleOf(
                     URL_KEY to url,
                     TOP_OFFSET_KEY to topOffset,
-                    BOTTOM_OFFSET_KEY to bottomOffset
+                    BOTTOM_OFFSET_KEY to bottomOffset,
+                    BACKGROUND_COLOR_KEY to backgroundColor
                 )
                 this.listener = listener
             }
