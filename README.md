@@ -8,6 +8,7 @@ subscriptions and properties through a REST API.
 - Fetch subscription status for users
 - Check for active subscriptions
 - Manage user properties
+- Identify users via device fingerprinting
 - Set third-parties profiles
 - Thread-safe singleton design
 - Built-in error handling
@@ -85,6 +86,13 @@ when {
     }
 }
 
+```
+
+### Identify users via device fingerprinting
+```kotlin
+// Identify
+val data = Web2Wave.identify()
+print("User identification: $data")
 ```
 
 ### External Subscription Cancel/Refund/Charge
@@ -178,7 +186,7 @@ val qonversionResult = Web2Wave.setQonversionProfileID(
 
 ```kotlin
   //Extend Web2WaveWebListener class to receive events
-class EventListener extends Web2WaveWebListener {
+class EventListener : Web2WaveWebListener {
 
     override fun onEvent(event: String, data: Map<String, Any>?) {
         print("onEvent: $event, data: ${data.toString()}")
@@ -231,6 +239,9 @@ Retrieves all properties associated with a user.
 #### `fun updateUserProperty(appUserID: String, property: String, value: String) : Result<Unit>`
 
 Updates a specific property for a user.
+
+#### `fun identify() : Map<String, Any?>?`
+Identifies a user using the device fingerprint and returns identification metadata.
 
 #### `fun setRevenuecatProfileID(appUserID: String, revenueCatProfileID: String) : Result<Unit>`
 

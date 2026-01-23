@@ -1,10 +1,13 @@
 package com.web2wave.lib
 
 import android.webkit.URLUtil
+import android.content.res.Resources
+import android.icu.util.TimeZone
 import androidx.fragment.app.FragmentManager
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.math.abs
 
 private const val BASE_URL = "https://api.web2wave.com"
 private const val WEB_2_WAVE = "web2wave_tag"
@@ -17,6 +20,7 @@ object Web2Wave {
 
     private const val API_SUBSCRIPTIONS = "api/user/subscriptions"
     private const val API_USER_PROPERTIES = "api/user/properties"
+    private const val API_USER_IDENTIFY = "api/user/identify"
     private const val API_SUBSCRIPTION_CANCEL = "api/subscription/cancel"
     private const val API_SUBSCRIPTION_REFUND = "api/subscription/refund"
     private const val API_SUBSCRIPTION_CHARGE = "api/subscription/user/charge"
@@ -179,6 +183,22 @@ object Web2Wave {
         }
     }
 
+    fun identify(): Map<String, Any?>? {
+        checkNotNull(apiKey) { "You have to initialize apiKey before use" }
+        val url = buildUrl(API_USER_IDENTIFY)
+
+        return try {
+            val response = makeRequest(url, METHOD_TYPE_GET)
+            response?.let { resp ->
+                val json = JSONObject(resp)
+                json.toMap()
+            }
+        } catch (e: Exception) {
+            println("Failed to identify user: ${e.localizedMessage}")
+            null
+        }
+    }
+
     fun setAdaptyProfileID(appUserID: String, adaptyProfileID: String): Result<Unit> =
         updateUserProperty(appUserID, PROFILE_ID_ADAPTY, adaptyProfileID)
 
@@ -210,6 +230,32 @@ object Web2Wave {
         }
     }
 
+    private fun getScreenSize(): String {
+       try {
+            val displayMetrics = Resources.getSystem().displayMetrics
+            return "${displayMetrics.widthPixels}x${displayMetrics.heightPixels}"
+       } catch (e: Exception) {
+           println("Failed to get display metrics: ${e.localizedMessage}")
+       }
+
+        return "0x0"
+    }
+
+    private fun getTimezone(): String {
+        try {
+            val timeZone = TimeZone.getDefault()
+            val offset = timeZone.getOffset(System.currentTimeMillis())
+            val hours = offset / (1000 * 60 * 60)
+            val minutes = abs(offset / (1000 * 60)) % 60
+            val sign = if (offset >= 0) "+" else "-"
+            return String.format("UTC%s%02d:%02d", sign, Math.abs(hours), minutes)
+        } catch (e: Exception) {
+            println("Failed to get timezone: ${e.localizedMessage}")
+        }
+
+        return "UTC+00:00"
+    }
+
     private fun makeRequest(url: URL, method: String, body: String? = null): String? {
         val connection = url.openConnection() as HttpURLConnection
         return try {
@@ -217,6 +263,8 @@ object Web2Wave {
             connection.setRequestProperty("api-key", apiKey)
             connection.setRequestProperty("Cache-Control", "no-cache")
             connection.setRequestProperty("Pragma", "no-cache")
+            connection.setRequestProperty("screen_size", getScreenSize())
+            connection.setRequestProperty("timezone", getTimezone())
 
             if (method == METHOD_TYPE_POST || method == METHOD_TYPE_PUT) {
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -228,9 +276,9 @@ object Web2Wave {
                 connection.inputStream.bufferedReader().use { it.readText() }
             } else {
                 println(
-                    "Unexpected response code: ${connection.responseCode}," +
-                            " message: ${connection.responseMessage}, " +
-                            " details: ${
+                        "Unexpected response code: ${connection.responseCode}," +
+                                " message: ${connection.responseMessage}, " +
+                                " details: ${
                                 connection.errorStream.bufferedReader().use { it.readText() }
                             }"
                 )
