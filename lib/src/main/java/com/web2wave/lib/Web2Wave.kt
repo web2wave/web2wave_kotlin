@@ -3,6 +3,7 @@ package com.web2wave.lib
 import android.webkit.URLUtil
 import android.content.res.Resources
 import android.icu.util.TimeZone
+import android.os.Build
 import androidx.fragment.app.FragmentManager
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -258,6 +259,7 @@ object Web2Wave {
 
     private fun makeRequest(url: URL, method: String, body: String? = null): String? {
         val connection = url.openConnection() as HttpURLConnection
+        val osVersion = Build.VERSION.RELEASE
         return try {
             connection.requestMethod = method
             connection.setRequestProperty("api-key", apiKey)
@@ -265,6 +267,7 @@ object Web2Wave {
             connection.setRequestProperty("Pragma", "no-cache")
             connection.setRequestProperty("screen_size", getScreenSize())
             connection.setRequestProperty("timezone", getTimezone())
+            connection.setRequestProperty("os_version", osVersion)
 
             if (method == METHOD_TYPE_POST || method == METHOD_TYPE_PUT) {
                 connection.setRequestProperty("Content-Type", "application/json")
