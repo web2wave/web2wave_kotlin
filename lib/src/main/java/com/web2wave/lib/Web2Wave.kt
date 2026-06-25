@@ -1,5 +1,8 @@
 package com.web2wave.lib
 
+import android.content.res.Resources
+import android.os.Build
+import android.util.DisplayMetrics
 import android.webkit.URLUtil
 import androidx.fragment.app.FragmentManager
 import org.json.JSONObject
@@ -20,6 +23,7 @@ object Web2Wave {
     private const val API_SUBSCRIPTION_CANCEL = "api/subscription/cancel"
     private const val API_SUBSCRIPTION_REFUND = "api/subscription/refund"
     private const val API_SUBSCRIPTION_CHARGE = "api/subscription/user/charge"
+    private const val API_USER_IDENTIFY = "api/user/identify"
 
     private const val KEY_USER = "user"
     private const val KEY_USER_ID = "user_id"
@@ -191,6 +195,19 @@ object Web2Wave {
     ): Result<Unit> =
         updateUserProperty(appUserID, PROFILE_ID_REVENUECAT, revenueCatProfileID)
 
+    fun identify(): Map<String, Any>? {
+        checkNotNull(apiKey) { "You have to initialize apiKey before use" }
+        val url = buildUrl(API_USER_IDENTIFY)
+
+        return try {
+            val response = makeRequest(url, METHOD_TYPE_GET)
+            response?.let { JSONObject(it).toMap() }
+        } catch (e: Exception) {
+            println("Failed to identify user: ${e.localizedMessage}")
+            null
+        }
+    }
+
     fun updateUserProperty(userID: String, property: String, value: String): Result<Unit> {
         checkNotNull(apiKey) { "You have to initialize apiKey before use" }
 
@@ -217,6 +234,10 @@ object Web2Wave {
             connection.setRequestProperty("api-key", apiKey)
             connection.setRequestProperty("Cache-Control", "no-cache")
             connection.setRequestProperty("Pragma", "no-cache")
+            connection.setRequestProperty("platform", "Android")
+            connection.setRequestProperty("screen_size", getScreenSize())
+            connection.setRequestProperty("timezone", getTimezone())
+            connection.setRequestProperty("os_version", getOSVersion())
 
             if (method == METHOD_TYPE_POST || method == METHOD_TYPE_PUT) {
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -243,6 +264,24 @@ object Web2Wave {
             connection.disconnect()
         }
     }
+
+    private fun getScreenSize(): String {
+        val metrics: DisplayMetrics = Resources.getSystem().displayMetrics
+        val width = (metrics.widthPixels / metrics.density).toInt()
+        val height = (metrics.heightPixels / metrics.density).toInt()
+        return "${width}x$height"
+    }
+
+    private fun getTimezone(): String {
+        val offsetMillis = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis())
+        val totalMinutes = offsetMillis / (60 * 1000)
+        val hours = totalMinutes / 60
+        val minutes = kotlin.math.abs(totalMinutes % 60)
+        val sign = if (hours >= 0) "+" else "-"
+        return String.format("UTC%s%02d:%02d", sign, kotlin.math.abs(hours), minutes)
+    }
+
+    private fun getOSVersion(): String = "Android ${Build.VERSION.RELEASE}"
 
     fun showWebView(
         fragmentManager: FragmentManager,

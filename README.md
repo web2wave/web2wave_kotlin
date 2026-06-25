@@ -8,6 +8,7 @@ subscriptions and properties through a REST API.
 - Fetch subscription status for users
 - Check for active subscriptions
 - Manage user properties
+- Identify web2wave user via device fingerprinting
 - Set third-parties profiles
 - Thread-safe singleton design
 - Built-in error handling
@@ -141,6 +142,35 @@ when {
 
 ```
 
+### Identify web2wave user
+
+The `identify()` method identifies a user using device fingerprinting and returns identification metadata including the `user_id`. Use it when a deeplink is unavailable.
+
+```kotlin
+val identificationData = Web2Wave.identify()
+
+if (identificationData?.get("success") == 1) {
+    val userId = identificationData["user_id"] as? String
+    if (userId != null) {
+        print("Identified user: $userId")
+        Web2Wave.setAdaptyProfileID(appUserID = userId, adaptyProfileID = "{adaptyProfileID}")
+    }
+} else {
+    print("Failed to identify user")
+}
+```
+
+**Response format:**
+
+```json
+{
+  "success": 1,
+  "user_id": "identified_user_guid",
+  "match_method": "match_method_used",
+  "platform": "Android"
+}
+```
+
 ### Managing third-party profiles
 
 ```kotlin
@@ -255,6 +285,10 @@ Cancel external subscription
 #### `fun refundSubscription(paySystemId: String, invoiceId: String, comment: String? = null): Result<Boolean> `
 
 Refund external subscription
+
+#### `fun identify(): Map<String, Any>?`
+
+Identifies a user using the device fingerprint and returns identification metadata.
 
 #### `fun showWebView(fragmentManager: FragmentManager, url: String, listener: Web2WaveWebListener, topOffset: Int = 0, bottomOffset: Int = 0)`
 
