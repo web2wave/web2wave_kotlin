@@ -144,7 +144,7 @@ when {
 
 ### Identify web2wave user
 
-The `identify()` method identifies a user using device fingerprinting and returns identification metadata including the `user_id`. Use it when a deeplink is unavailable.
+The `identify()` method identifies a user using device fingerprinting and returns identification metadata including the `user_id`. Use it as an **alternative to MMP attribution** (AppsFlyer, Adjust, Branch, etc.) when you do not run those tools — call it on first app launch instead of reading an install deeplink.
 
 ```kotlin
 val identificationData = Web2Wave.identify()
@@ -288,7 +288,7 @@ Refund external subscription
 
 #### `fun identify(): Map<String, Any>?`
 
-Identifies a user using the device fingerprint and returns identification metadata.
+Identifies a user using the device fingerprint. Alternative to MMP-based deeplink attribution.
 
 #### `fun showWebView(fragmentManager: FragmentManager, url: String, listener: Web2WaveWebListener, topOffset: Int = 0, bottomOffset: Int = 0)`
 
