@@ -238,6 +238,7 @@ object Web2Wave {
             connection.setRequestProperty("screen_size", getScreenSize())
             connection.setRequestProperty("timezone", getTimezone())
             connection.setRequestProperty("os_version", getOSVersion())
+            getDeviceModel()?.let { connection.setRequestProperty("device_model", it) }
 
             if (method == METHOD_TYPE_POST || method == METHOD_TYPE_PUT) {
                 connection.setRequestProperty("Content-Type", "application/json")
@@ -282,6 +283,12 @@ object Web2Wave {
     }
 
     private fun getOSVersion(): String = "Android ${Build.VERSION.RELEASE}"
+
+    /** Device model for fingerprinting (e.g. "Pixel 7", "SM-S911B"). */
+    private fun getDeviceModel(): String? {
+        val model = Build.MODEL?.trim().orEmpty()
+        return model.takeIf { it.isNotEmpty() }
+    }
 
     fun showWebView(
         fragmentManager: FragmentManager,
