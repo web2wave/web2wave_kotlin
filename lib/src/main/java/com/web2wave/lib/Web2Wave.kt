@@ -17,6 +17,8 @@ object Web2Wave {
     private const val PROFILE_ID_REVENUECAT = "revenuecat_profile_id"
     private const val PROFILE_ID_ADAPTY = "adapty_profile_id"
     private const val PROFILE_ID_QONVERSION = "qonversion_profile_id"
+    private const val PROFILE_ID_APPHUD = "apphud_profile_id"
+    private const val PROFILE_ID_SUPERWALL = "superwall_profile_id"
 
     private const val API_SUBSCRIPTIONS = "api/user/subscriptions"
     private const val API_USER_PROPERTIES = "api/user/properties"
@@ -188,6 +190,12 @@ object Web2Wave {
 
     fun setQonversionProfileID(appUserID: String, qonversionProfileID: String): Result<Unit> =
         updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID)
+
+    fun setApphudProfileID(appUserID: String, apphudProfileID: String): Result<Unit> =
+        updateUserProperty(appUserID, PROFILE_ID_APPHUD, apphudProfileID)
+
+    fun setSuperwallProfileID(appUserID: String, superwallProfileID: String): Result<Unit> =
+        updateUserProperty(appUserID, PROFILE_ID_SUPERWALL, superwallProfileID)
 
     fun setRevenuecatProfileID(
         appUserID: String,

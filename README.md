@@ -202,6 +202,18 @@ val qonversionResult = Web2Wave.setQonversionProfileID(
     qonversionProfileID = "qonversionProfileID"
 )
 
+// Save Apphud profileID
+val apphudResult = Web2Wave.setApphudProfileID(
+    appUserID = "user123",
+    apphudProfileID = "apphudProfileID"
+)
+
+// Save Superwall profileID (Superwall.instance.userId after identify())
+val superwallResult = Web2Wave.setSuperwallProfileID(
+    appUserID = "user123",
+    superwallProfileID = "superwallProfileID"
+)
+
 ```
 
 ### Working with quiz or landing web page
@@ -273,6 +285,14 @@ Set Adapty profileID
 #### `fun setQonversionProfileID(appUserID: String, qonversionProfileID: String) : Result<Unit>`
 
 Set Qonversion ProfileID
+
+#### `fun setApphudProfileID(appUserID: String, apphudProfileID: String) : Result<Unit>`
+
+Set Apphud ProfileID
+
+#### `fun setSuperwallProfileID(appUserID: String, superwallProfileID: String) : Result<Unit>`
+
+Set Superwall ProfileID
 
 #### `fun chargeUser(web2waveUserId: String, priceId: Int): Result<Boolean>`
 
