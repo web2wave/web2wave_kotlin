@@ -38,7 +38,6 @@ object Web2Wave {
     private const val KEY_PAY_SYSTEM = "pay_system_id"
     private const val KEY_INVOICE_ID = "invoice_id"
     private const val KEY_STATUS = "status"
-    private const val KEY_RESULT = "result"
 
     private const val VALUE_ACTIVE = "active"
     private const val VALUE_TRIAL = "trialing"
@@ -67,8 +66,7 @@ object Web2Wave {
         val url = buildUrl(API_SUBSCRIPTIONS, mapOf(KEY_USER to userID))
 
         return try {
-            val response = makeRequest(url, METHOD_TYPE_GET)
-            response?.let { resp ->
+            successBody(makeRequest(url, METHOD_TYPE_GET))?.let { resp ->
                 val json = JSONObject(resp)
                 json.toMap()
             }
@@ -108,11 +106,7 @@ object Web2Wave {
                 if (!comment.isNullOrBlank()) put(KEY_COMMENT, comment)
             }.toString()
 
-            val response = makeRequest(url, METHOD_TYPE_PUT, body)
-            val json = response?.let { JSONObject(it) }
-
-            if (json?.optString("success") == "1") Result.success(true)
-            else Result.failure(Exception(json?.optString("message") ?: "Unknown error"))
+            toResult(makeRequest(url, METHOD_TYPE_PUT, body), true, ApiResponse::isSuccess)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -124,14 +118,10 @@ object Web2Wave {
             val url = buildUrl(API_SUBSCRIPTION_CHARGE)
             val body = JSONObject().apply {
                 put(KEY_USER_ID, web2waveUserId)
-                put(KEY_PRICE_ID, priceId.toString())
+                put(KEY_PRICE_ID, priceId)
             }.toString()
 
-            val response = makeRequest(url, METHOD_TYPE_POST, body)
-            val json = response?.let { JSONObject(it) }
-
-            if (json?.optString("success") == "1") Result.success(true)
-            else Result.failure(Exception(json?.optString("message") ?: "Unknown error"))
+            toResult(makeRequest(url, METHOD_TYPE_POST, body), true, ApiResponse::isSuccess)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -151,11 +141,7 @@ object Web2Wave {
                 if (!comment.isNullOrBlank()) put(KEY_COMMENT, comment)
             }.toString()
 
-            val response = makeRequest(url, METHOD_TYPE_PUT, body)
-            val json = response?.let { JSONObject(it) }
-
-            if (json?.optString("success") == "1") Result.success(true)
-            else Result.failure(Exception(json?.optString("message") ?: "Unknown error"))
+            toResult(makeRequest(url, METHOD_TYPE_PUT, body), true, ApiResponse::isSuccess)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -166,8 +152,7 @@ object Web2Wave {
         val url = buildUrl(API_USER_PROPERTIES, mapOf(KEY_USER to userID))
 
         return try {
-            val response = makeRequest(url, METHOD_TYPE_GET)
-            response?.let {
+            successBody(makeRequest(url, METHOD_TYPE_GET))?.let {
                 val json = JSONObject(it)
                 val properties = json.optJSONArray(KEY_PROPERTIES) ?: return@let null
                 val result = mutableMapOf<String, String>()
@@ -208,8 +193,7 @@ object Web2Wave {
         val url = buildUrl(API_USER_IDENTIFY)
 
         return try {
-            val response = makeRequest(url, METHOD_TYPE_GET)
-            response?.let { JSONObject(it).toMap() }
+            successBody(makeRequest(url, METHOD_TYPE_GET))?.let { JSONObject(it).toMap() }
         } catch (e: Exception) {
             println("Failed to identify user: ${e.localizedMessage}")
             null
@@ -226,20 +210,41 @@ object Web2Wave {
         }.toString()
 
         return try {
-            val response = makeRequest(url, METHOD_TYPE_POST, body)
-            val json = response?.let { JSONObject(it) }
-            if (json?.optString(KEY_RESULT) == "1") Result.success(Unit)
-            else Result.failure(Exception("Unexpected response"))
+            toResult(makeRequest(url, METHOD_TYPE_POST, body), Unit, ApiResponse::isResultOk)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    private fun makeRequest(url: URL, method: String, body: String? = null): String? {
+    /** Builds a Result from a mutation response: success only for a 2xx with a truthy flag. */
+    private fun <T> toResult(
+        response: HttpResult,
+        value: T,
+        isOk: (JSONObject?) -> Boolean
+    ): Result<T> {
+        val json = ApiResponse.parse(response.body)
+        return if (response.isSuccessful && isOk(json)) Result.success(value)
+        else Result.failure(Exception(ApiResponse.errorMessage(json, response.code)))
+    }
+
+    /** Body of a 2xx response, or null (logging the error) otherwise. */
+    private fun successBody(response: HttpResult): String? {
+        if (response.isSuccessful) return response.body
+        println("Unexpected response code: ${response.code}, details: ${response.body}")
+        return null
+    }
+
+    /**
+     * Performs the request and returns the status code with the body. For non-2xx responses the
+     * error stream is read so the backend's `error_msg` reaches the caller. Network errors are thrown
+     * (every caller wraps this in try/catch).
+     */
+    private fun makeRequest(url: URL, method: String, body: String? = null): HttpResult {
         val connection = url.openConnection() as HttpURLConnection
-        return try {
+        try {
             connection.requestMethod = method
             connection.setRequestProperty("api-key", apiKey)
+            connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty("Cache-Control", "no-cache")
             connection.setRequestProperty("Pragma", "no-cache")
             connection.setRequestProperty("platform", "Android")
@@ -254,21 +259,10 @@ object Web2Wave {
                 body?.let { connection.outputStream.use { os -> os.write(it.toByteArray()) } }
             }
 
-            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                connection.inputStream.bufferedReader().use { it.readText() }
-            } else {
-                println(
-                    "Unexpected response code: ${connection.responseCode}," +
-                            " message: ${connection.responseMessage}, " +
-                            " details: ${
-                                connection.errorStream.bufferedReader().use { it.readText() }
-                            }"
-                )
-                null
-            }
-        } catch (e: Exception) {
-            println("Request failed: ${e.localizedMessage}")
-            null
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val text = stream?.bufferedReader()?.use { it.readText() }
+            return HttpResult(code, text)
         } finally {
             connection.disconnect()
         }
